@@ -1,0 +1,8 @@
+# name     max_secs  command
+build      30        make -v
+sleep1     5         sleep 2
+greet      5         echo hello world
+
+# blank lines and comments should be skipped
+gpu_train  60        [gpu] sleep 3
+bad_line    3
