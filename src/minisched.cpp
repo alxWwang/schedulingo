@@ -34,13 +34,17 @@ int main(int argc, char *argv[]){
     while (getline(incoming_job, line)){
         if (line.size() == 0 || line[0] == '#') continue;
         istringstream in(line);
-        string timeLimit; string word;
+        string timeLimit = "0"; string word = "";
         Jobs jb;
 
         try{
             if (!(in >> jb.title >> timeLimit)) continue ;
             jb.timeLimit = stoi(timeLimit);
             while (in >> word){
+                if (word == "[gpu]"){
+                    jb.gpu = true;
+                    continue;
+                }
                 jb.command.push_back(std::move(word));
             }
             if (jb.command.size() == 0) continue;
