@@ -17,8 +17,8 @@ leakcheck: parser.c
 	leaks --atExit -- ./parser_plain jobs.txt
 
 # ---- Day 2: C++ parser ----
-minisched: minisched.cpp
-	$(CXX) $(CXXFLAGS) $(SAN) minisched.cpp -o minisched
+minisched: src/minisched.cpp
+	$(CXX) $(CXXFLAGS) $(SAN) src/minisched.cpp -o minisched
 
 runcpp: minisched
 	./minisched jobs.txt
