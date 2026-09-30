@@ -4,40 +4,50 @@
 #include <sstream>
 #include <vector>
 
-void run_funcs(std::vector<std::string>& args){
+#include "minisched/jobs.hpp"
+
+using namespace std;
+
+void run_funcs(vector<string>& args){
     printf("Job Title: %s\n", args[0].c_str());
     printf("Time limit: %d\n", stoi(args[1]));
     printf("Command: ");
     for (size_t i = 2; i < args.size(); i ++ ){
-        std::cout << (args[i]) << " ";
+        cout << (args[i]) << " ";
     }
     printf("\n\n");
 }
 
 int main(int argc, char *argv[]){
     if (argc < 2) {
-        std::cout << "usage: " << argv[0] << "<file>";
+        cout << "usage: " << argv[0] << "<file>";
         return 1;
     }
-    std::string path = argv[1];
-    std::ifstream incoming_job(path);
-    std::string line;
+    string path = argv[1];
+    ifstream incoming_job(path);
+    string line;
     if (!incoming_job) {
-        std::cerr << "File " << argv[1] << " is unavailable\n";
+        cerr << "File " << argv[1] << " is unavailable\n";
         return 1;
     }
 
-    while (std::getline(incoming_job, line)){
+    while (getline(incoming_job, line)){
         if (line.size() == 0 || line[0] == '#') continue;
-        std::istringstream in(line);
-        std::string word;
-        std::vector<std::string> tokens;
-        while (in >> word){
-            tokens.push_back(word);
+        istringstream in(line);
+        string timeLimit; string word;
+        Jobs jb;
+
+        try{
+            if (!(in >> jb.title >> timeLimit)) continue ;
+            jb.timeLimit = stoi(timeLimit);
+            while (in >> word){
+                jb.command.push_back(std::move(word));
+            }
+            if (jb.command.size() == 0) continue;
+        }catch(...){
+            continue;
         }
-        if (tokens.size() > 2){
-            run_funcs(tokens);
-        }
+        jb.printJob();
     }
     return 0;
 }

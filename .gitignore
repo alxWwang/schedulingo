@@ -1,0 +1,6 @@
+# build outputs
+minisched
+parser
+parser_plain
+*.dSYM/
+*.o
