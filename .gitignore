@@ -1,10 +1,9 @@
 # build outputs
-minisched
-parser
-parser_plain
+/parser
+/parser_plain
 *.dSYM/
 *.o
-minisched_tsan
+/minisched_tsan
 examples/
 examples2/
 src_c/
