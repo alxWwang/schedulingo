@@ -9,7 +9,7 @@
 #include "minisched/colors.hpp"
 
 using namespace std;
-constexpr int MAX_N = 1;
+constexpr int MAX_N = 5;
 
 
 Jobs parse_line(istringstream& in){
