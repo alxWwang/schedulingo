@@ -36,21 +36,25 @@ int runner(Jobs& job, unordered_map<pid_t, Jobs>& jobMap){
 };
 
 int runner_no_map(Jobs& job){
+    std::vector<char*> args;
+    for (auto& s : job.command) args.push_back(s.data());
+    args.push_back(nullptr);
     
     pid_t pid = fork();
     if (pid < 0){
-        perror("Fork failed");
-        return 1;
+        return -1;
     }
     if (pid == 0) { // Child process
-        std::cout.flush();
-        c_process(job);
-        perror("execvp");
+        execvp(args[0], args.data());
+        const char msg[] = "execvp failed\n";
+        write(STDERR_FILENO, msg, sizeof msg - 1);
         _exit(127);
-    } else {        // Parent Process
-        int status;
-        waitpid(pid, &status, 0);
+    }
+    // Parent Process
+    int status;
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status)){
         return WEXITSTATUS(status);
     }
-    return 0;
+    return -1;
 };
