@@ -7,6 +7,7 @@
 #include "minisched/jobs.hpp"
 #include "minisched/runner.hpp"
 #include "minisched/colors.hpp"
+#include "minisched/jobq.hpp"
 
 using namespace std;
 constexpr int MAX_N = 5;
@@ -83,7 +84,8 @@ int main(int argc, char *argv[]){
             continue;
         }
     }
-    n_max_runner(MAX_N, JobsList, jobMap);
+    run_job_queue(JobsList);
+    // n_max_runner(MAX_N, JobsList, jobMap);
     return 0;
 }
 

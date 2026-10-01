@@ -35,3 +35,22 @@ int runner(Jobs& job, unordered_map<pid_t, Jobs>& jobMap){
     return 0;
 };
 
+int runner_no_map(Jobs& job){
+    
+    pid_t pid = fork();
+    if (pid < 0){
+        perror("Fork failed");
+        return 1;
+    }
+    if (pid == 0) { // Child process
+        std::cout.flush();
+        c_process(job);
+        perror("execvp");
+        _exit(127);
+    } else {        // Parent Process
+        int status;
+        waitpid(pid, &status, 0);
+        return WEXITSTATUS(status);
+    }
+    return 0;
+};
