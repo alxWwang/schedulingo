@@ -5,3 +5,5 @@ parser_plain
 *.dSYM/
 *.o
 minisched_tsan
+examples/
+examples2/
