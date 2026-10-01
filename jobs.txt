@@ -1,8 +1,15 @@
 # name     max_secs  command
-build      5        make -v
-sleep1     2         sleep 2
+build      5        echo hello build
+sleep1     2         echo hello sleep1
 greet      3         echo hello world
 
 # blank lines and comments should be skipped
-gpu_train  60        [gpu] sleep 3
-bad_line
+gpu_train  60        [gpu] echo hello gpu
+bad_line    2
+
+# python tests
+py_test1    10      python3 testfiles/test1.py
+py_test2    7      python3 testfiles/test2.py
+py_test3    5      python3 testfiles/test3.py
+py_test4    2      python3 testfiles/test4.py
+py_test5    15      python3 testfiles/test5.py

@@ -20,7 +20,7 @@ void run_funcs(vector<string>& args){
 }
 
 void gather_result(unordered_map<pid_t, Jobs>& jobMap){
-    for (const auto& jm: jobMap){
+    for (size_t i = 0; i < jobMap.size(); i++){
         int status = 0;
         pid_t done = waitpid(-1, &status, 0);
     
@@ -54,6 +54,7 @@ int main(int argc, char *argv[]){
         try{
             if (!(in >> jb.title >> timeLimit)) continue ;
             jb.timeLimit = stoi(timeLimit);
+            string rest;
             while (in >> word){
                 if (word == "[gpu]"){
                     jb.gpu = true;
@@ -66,8 +67,6 @@ int main(int argc, char *argv[]){
             continue;
         }
         runner(jb, jobMap);
-
-        // jb.printJob();
     }
     gather_result(jobMap);
     return 0;
