@@ -5,6 +5,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <ostream>
+#include <semaphore>
 
 class JobQueue{
     public:
@@ -16,6 +17,7 @@ class JobQueue{
         std::queue<Jobs> jobs_;
         std::mutex lock_;
         std::mutex write_lock;
+        std::counting_semaphore<2> gpu_sem{2};
         
 };
 void run_job_queue(vector<Jobs>& JobsList);

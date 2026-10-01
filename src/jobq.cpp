@@ -3,6 +3,7 @@
 #include "minisched/colors.hpp"
 #include <thread>
 #include <unistd.h> 
+#include <semaphore>
 
 
 void JobQueue::push(Jobs job){
@@ -27,7 +28,16 @@ void JobQueue::minirunner(int id){
             std::lock_guard<std::mutex> lock(write_lock);
             std::cout << color::YELLOW << id << "-> Started Job as parent with title: " << out.title << color::RESET << std::endl;
         }
-        int runner_status = runner_no_map(out);
+        int runner_status;
+
+        if (out.gpu){
+            gpu_sem.acquire();
+            runner_status = runner_no_map(out);
+            gpu_sem.release();
+        }else{
+            runner_status = runner_no_map(out);
+        }
+
         {
             std::lock_guard<std::mutex> lock(write_lock);
             std::cout << color::RED << id << "-> Finished Job: " << out.title << " status: " << runner_status << color::RESET << std::endl;
@@ -36,20 +46,20 @@ void JobQueue::minirunner(int id){
 }
 
 void run_job_queue(vector<Jobs>& JobsList){
-    std::cout << "hello world: starting 4 workers" << std::endl;
+    int n_threads = std::thread::hardware_concurrency();
+    std::cout << "hello world: starting " << n_threads <<" workers" << std::endl;
 
+    std::vector<std::thread> threads_l;
     JobQueue jq;
     for (const auto& job: JobsList){
         jq.push(job);
     }
-
-    std::thread t1(&JobQueue::minirunner, &jq, 1);
-    std::thread t2(&JobQueue::minirunner, &jq, 2);
-    std::thread t3(&JobQueue::minirunner, &jq, 3);    
-    std::thread t4(&JobQueue::minirunner, &jq, 4);
-
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
+    for (int i = 0; i< n_threads; i ++){
+        threads_l.emplace_back(&JobQueue::minirunner, &jq, i);
+    }
+    for (thread& t: threads_l){
+        if(t.joinable()){
+            t.join();
+        }
+    }
 }
