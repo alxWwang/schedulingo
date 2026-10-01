@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "minisched/jobs.hpp"
+#include "minisched/runner.hpp"
 
 using namespace std;
 
@@ -18,6 +19,17 @@ void run_funcs(vector<string>& args){
     printf("\n\n");
 }
 
+void gather_result(unordered_map<pid_t, Jobs>& jobMap){
+    for (const auto& jm: jobMap){
+        int status = 0;
+        pid_t done = waitpid(-1, &status, 0);
+    
+        if (WIFEXITED(status)){
+            std::cout << "Finished Job: " << jobMap[done].title << " with code: " << WIFEXITED(status) << " status: " << WEXITSTATUS(status) << std::endl;
+        }
+    }
+}
+
 int main(int argc, char *argv[]){
     if (argc < 2) {
         cout << "usage: " << argv[0] << "<file>";
@@ -26,6 +38,8 @@ int main(int argc, char *argv[]){
     string path = argv[1];
     ifstream incoming_job(path);
     string line;
+    unordered_map<pid_t, Jobs> jobMap;
+
     if (!incoming_job) {
         cerr << "File " << argv[1] << " is unavailable\n";
         return 1;
@@ -34,7 +48,7 @@ int main(int argc, char *argv[]){
     while (getline(incoming_job, line)){
         if (line.size() == 0 || line[0] == '#') continue;
         istringstream in(line);
-        string timeLimit = "0"; string word = "";
+        string timeLimit; string word;
         Jobs jb;
 
         try{
@@ -51,8 +65,11 @@ int main(int argc, char *argv[]){
         }catch(...){
             continue;
         }
-        jb.printJob();
+        runner(jb, jobMap);
+
+        // jb.printJob();
     }
+    gather_result(jobMap);
     return 0;
 }
 
