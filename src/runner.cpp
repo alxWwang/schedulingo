@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include "minisched/jobs.hpp"
+#include "minisched/colors.hpp"
 
 void c_process(Jobs& job){
     std::vector<char *> chars;
@@ -16,19 +17,19 @@ void c_process(Jobs& job){
 }
 
 int runner(Jobs& job, unordered_map<pid_t, Jobs>& jobMap){
+    
     pid_t pid = fork();
     if (pid < 0){
         perror("Fork failed");
         return 1;
     }
-
-    jobMap[pid] = job;
     if (pid == 0) { // Child process
         std::cout.flush();
         c_process(job);
         _exit(127);
     } else {        // Parent Process
-        std::cout << "Started Job as parent with title: " << job.title << std::endl;
+        std::cout << color::YELLOW << "Started Job as parent with title: " << job.title << color::RESET << std::endl;
+        jobMap[pid] = job;
     }
     return 0;
 };
