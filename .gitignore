@@ -7,3 +7,4 @@ parser_plain
 minisched_tsan
 examples/
 examples2/
+src_c/
