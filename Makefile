@@ -26,7 +26,12 @@ minisched: $(SRCS) $(HEADERS)
 runcpp: minisched
 	./minisched jobs.txt
 
-clean:
-	rm -rf parser parser_plain minisched *.dSYM
+# ThreadSanitizer build (detects data races). Can't be combined with ASan.
+tsan: $(SRCS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) -fsanitize=thread $(SRCS) -o minisched_tsan
+	./minisched_tsan jobs.txt
 
-.PHONY: run leakcheck runcpp clean
+clean:
+	rm -rf parser parser_plain minisched minisched_tsan *.dSYM
+
+.PHONY: run leakcheck runcpp tsan clean

@@ -9,6 +9,8 @@
 #include "minisched/colors.hpp"
 
 using namespace std;
+constexpr int MAX_N = 1;
+
 
 Jobs parse_line(istringstream& in){
     Jobs jb;
@@ -45,10 +47,10 @@ void n_max_runner(int max_n, vector<Jobs>& JobsList, unordered_map<pid_t, Jobs>&
             pid_t done = waitpid(-1, &status, 0);
         
             if (WIFEXITED(status)){
-                jobs_done ++;
-                active_jobs --;
                 std::cout << color::RED << "Finished Job: " << jobMap[done].title << " with code: " << WIFEXITED(status) << " status: " << WEXITSTATUS(status) << color::RESET << std::endl;
             }
+            jobs_done ++;
+            active_jobs --;
         }
 
     }
@@ -81,7 +83,7 @@ int main(int argc, char *argv[]){
             continue;
         }
     }
-    n_max_runner(3, JobsList, jobMap);
+    n_max_runner(MAX_N, JobsList, jobMap);
     return 0;
 }
 

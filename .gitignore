@@ -4,3 +4,4 @@ parser
 parser_plain
 *.dSYM/
 *.o
+minisched_tsan

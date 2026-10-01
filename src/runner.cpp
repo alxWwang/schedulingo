@@ -26,6 +26,7 @@ int runner(Jobs& job, unordered_map<pid_t, Jobs>& jobMap){
     if (pid == 0) { // Child process
         std::cout.flush();
         c_process(job);
+        perror("execvP")
         _exit(127);
     } else {        // Parent Process
         std::cout << color::YELLOW << "Started Job as parent with title: " << job.title << color::RESET << std::endl;
