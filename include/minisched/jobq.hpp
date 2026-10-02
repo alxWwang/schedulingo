@@ -18,7 +18,12 @@ class JobQueue{
         std::mutex lock_;
         std::mutex write_lock;
         std::counting_semaphore<2> gpu_sem{2};
-        
+
+        int get_process_ct();
+        void run_with_print(Jobs& out, int id);
+        int decrement_process_ct();
+        int active_process_ct = 0;
+
 };
 void run_job_queue(vector<Jobs>& JobsList);
 
