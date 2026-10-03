@@ -7,6 +7,8 @@
 #include <ostream>
 #include <semaphore>
 #include <atomic>
+#include <thread>
+
 
 struct Stats {
     int done = 0;
@@ -49,6 +51,15 @@ class JobQueue{
             std::cout << "Done: " << stats_.done << " Failed: " <<  stats_.failed << " Time elapsed: " << stats_.time_elapsed;
             spin_lock.unlock();
         }
+        void run_job_queue(vector<Jobs>& JobsList);
+
+        JobQueue() = default;
+        void set_gpu(int gpu_resources_ct){
+            this->gpu_resources_ct = gpu_resources_ct;
+        }
+        void set_worker(int worker_ct){
+            this->worker_ct = worker_ct;
+        }
         
     private:
         std::queue<Jobs> jobs_;
@@ -60,7 +71,8 @@ class JobQueue{
         std::queue<Jobs> gpu_jobs;
 
         int active_process_ct = 0;
-        int gpu_resources_ct = 4;
+        int worker_ct = std::thread::hardware_concurrency();
+        int gpu_resources_ct = 2;
         Stats stats_;
         SpinLock spin_lock;
 
@@ -91,7 +103,6 @@ class JobQueue{
             spin_lock.unlock();
         }
 };
-void run_job_queue(vector<Jobs>& JobsList);
 
 // Test helper: runs a few jobs through a shared JobQueue using threads.
 

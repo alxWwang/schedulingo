@@ -64,21 +64,18 @@ void JobQueue::minirunner(int id){
     }
 }
 
-void run_job_queue(vector<Jobs>& JobsList){
-    int n_threads = std::thread::hardware_concurrency();
-    std::cout << "hello world: starting " << n_threads <<" workers" << std::endl;
+void JobQueue::run_job_queue(vector<Jobs>& JobsList){
+    std::cout << "hello world: starting " << this->worker_ct <<" workers" << std::endl;
 
     std::vector<std::thread> threads_l;
-    JobQueue jq;
-
     auto start_time = std::chrono::system_clock::now();
 
     for (const auto& job: JobsList){
-        jq.push(job);
+        this->push(job);
     }
     
-    for (int i = 0; i< n_threads; i ++){
-        threads_l.emplace_back(&JobQueue::minirunner, &jq, i);
+    for (int i = 0; i< this->worker_ct; i ++){
+        threads_l.emplace_back(&JobQueue::minirunner, this, i);
     }
     for (thread& t: threads_l){
         if(t.joinable()){
@@ -89,6 +86,6 @@ void run_job_queue(vector<Jobs>& JobsList){
     std::chrono::duration<double> t_elapsed = (end_time-start_time);
 
 
-    jq.print_status();
+    this->print_status();
     std::cout << "Real time: " << t_elapsed.count();
 } 

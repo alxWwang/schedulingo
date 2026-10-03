@@ -10,25 +10,7 @@
 #include "minisched/jobq.hpp"
 
 using namespace std;
-constexpr int MAX_N = 5;
-
-
-Jobs parse_line(istringstream& in){
-    Jobs jb;
-    string timeLimit; string word;
-    if (!(in >> jb.title >> timeLimit)) throw "No title or time limit" ;
-    jb.timeLimit = stoi(timeLimit);
-    string rest;
-    while (in >> word){
-        if (word == "[gpu]"){
-            jb.gpu = true;
-            continue;
-        }
-        jb.command.push_back(std::move(word));
-    }
-    if (jb.command.size() == 0) throw "No command";
-    return jb;
-}
+// constexpr int MAX_N = 5;
 
 void n_max_runner(int max_n, vector<Jobs>& JobsList, unordered_map<pid_t, Jobs>& jobMap){
     size_t jobs_done = 0;
@@ -62,10 +44,20 @@ int main(int argc, char *argv[]){
         cout << "usage: " << argv[0] << "<file>";
         return 1;
     }
+
+    JobQueue jq;
+    for (int i = 2; i < argc; i ++){
+        if (strcmp(argv[i],"--gpu_ct") == 0 && i+1 < argc){
+            jq.set_gpu(atoi(argv[i+1]));
+        }if (strcmp(argv[i],"--worker_ct") == 0 && i+1 < argc){
+            jq.set_worker(atoi(argv[i+1]));
+        }
+    }
+
     string path = argv[1];
     ifstream incoming_job(path);
     string line;
-    unordered_map<pid_t, Jobs> jobMap;
+    // unordered_map<pid_t, Jobs> jobMap;
     vector<Jobs> JobsList;
 
     if (!incoming_job) {
@@ -76,15 +68,13 @@ int main(int argc, char *argv[]){
     while (getline(incoming_job, line)){
         if (line.size() == 0 || line[0] == '#') continue;
         istringstream in(line);
-
         try{
-            Jobs jb = parse_line(in);
-            JobsList.push_back(std::move(jb));
+            JobsList.push_back(Jobs(in));
         }catch(...){
             continue;
         }
     }
-    run_job_queue(JobsList);
+    jq.run_job_queue(JobsList);
     // n_max_runner(MAX_N, JobsList, jobMap);
     return 0;
 }
