@@ -1,9 +1,13 @@
-#include <minisched/jobq.hpp>
-#include <minisched/runner.hpp>
-#include <minisched/colors.hpp>
-#include <thread>
-#include <unistd.h> 
-#include <semaphore>
+#include "minisched/jobq.hpp"
+
+#include <chrono>       // std::chrono (job and run timing)
+#include <iostream>     // std::cout
+#include <mutex>        // std::lock_guard, std::unique_lock
+#include <thread>       // std::thread
+#include <vector>       // std::vector
+
+#include "minisched/colors.hpp"
+#include "minisched/runner.hpp"
 
 
 void JobQueue::push(Jobs job){
@@ -64,7 +68,7 @@ void JobQueue::minirunner(int id){
     }
 }
 
-void JobQueue::run_job_queue(vector<Jobs>& JobsList){
+void JobQueue::run_job_queue(std::vector<Jobs>& JobsList){
     std::cout << "hello world: starting " << this->worker_ct <<" workers" << std::endl;
 
     std::vector<std::thread> threads_l;
@@ -77,7 +81,7 @@ void JobQueue::run_job_queue(vector<Jobs>& JobsList){
     for (int i = 0; i< this->worker_ct; i ++){
         threads_l.emplace_back(&JobQueue::minirunner, this, i);
     }
-    for (thread& t: threads_l){
+    for (std::thread& t: threads_l){
         if(t.joinable()){
             t.join();
         }

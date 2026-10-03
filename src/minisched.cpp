@@ -1,13 +1,18 @@
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <vector>
+#include <cstdlib>          // atoi
+#include <cstring>          // strcmp
+#include <fstream>          // std::ifstream
+#include <iostream>         // std::cout, std::cerr
+#include <sstream>          // std::istringstream
+#include <string>           // std::string, std::getline
+#include <unordered_map>    // std::unordered_map (n_max_runner)
+#include <vector>           // std::vector
 
-#include "minisched/jobs.hpp"
-#include "minisched/runner.hpp"
+#include <sys/wait.h>       // waitpid, WIFEXITED, WEXITSTATUS (n_max_runner)
+
 #include "minisched/colors.hpp"
 #include "minisched/jobq.hpp"
+#include "minisched/jobs.hpp"
+#include "minisched/runner.hpp"
 
 using namespace std;
 // constexpr int MAX_N = 5;

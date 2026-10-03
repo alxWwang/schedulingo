@@ -1,13 +1,14 @@
 #pragma once
-#include <minisched/jobs.hpp>
-#include <minisched/colors.hpp>
-#include <queue>
-#include <mutex>
-#include <unordered_map>
-#include <ostream>
-#include <semaphore>
-#include <atomic>
-#include <thread>
+
+#include <atomic>               // std::atomic_flag (SpinLock)
+#include <condition_variable>   // std::condition_variable
+#include <iostream>             // std::cout (print_status)
+#include <mutex>                // std::mutex
+#include <queue>                // std::queue
+#include <thread>               // std::thread::hardware_concurrency
+#include <vector>               // std::vector
+
+#include "minisched/jobs.hpp"
 
 
 struct Stats {
@@ -51,7 +52,7 @@ class JobQueue{
             std::cout << "Done: " << stats_.done << " Failed: " <<  stats_.failed << " Time elapsed: " << stats_.time_elapsed;
             spin_lock.unlock();
         }
-        void run_job_queue(vector<Jobs>& JobsList);
+        void run_job_queue(std::vector<Jobs>& JobsList);
 
         JobQueue() = default;
         void set_gpu(int gpu_resources_ct){

@@ -1,23 +1,21 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <iostream>
-#include <sstream>
-
-using namespace std;
+#include <iostream>     // std::cout, std::endl (printJob)
+#include <sstream>      // std::istringstream
+#include <string>       // std::string, std::stoi
+#include <vector>       // std::vector
 
 class Jobs {
     public:
-        string title = "";
+        std::string title = "";
         int timeLimit = 0;
         bool gpu = false;
-        vector<string> command;
+        std::vector<std::string> command;
 
-        Jobs(istringstream& in){
-            string timeLimit; string word;
+        Jobs(std::istringstream& in){
+            std::string timeLimit; std::string word;
             if (!(in >> this->title >> timeLimit)) throw "No title or time limit" ;
-            this->timeLimit = stoi(timeLimit);
+            this->timeLimit = std::stoi(timeLimit);
             while (in >> word){
                 if (word == "[gpu]"){
                     this->gpu = true;
@@ -31,13 +29,13 @@ class Jobs {
 
         // Member Function (Method) defined inside the class
         void printJob() const {
-            cout << "Job title: " << title << endl;
-            cout << "Time limit: " << timeLimit << endl;
-            cout << "Uses gpu? :" << (gpu ? "True": "False") << endl;
-            cout << "Command: ";
-            for (const string& cmd : command){
-                cout << cmd << " ";
+            std::cout << "Job title: " << title << std::endl;
+            std::cout << "Time limit: " << timeLimit << std::endl;
+            std::cout << "Uses gpu? :" << (gpu ? "True": "False") << std::endl;
+            std::cout << "Command: ";
+            for (const std::string& cmd : command){
+                std::cout << cmd << " ";
             }
-            cout << endl << endl;
+            std::cout << std::endl << std::endl;
         }
 };

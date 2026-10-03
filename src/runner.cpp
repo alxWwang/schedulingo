@@ -1,11 +1,15 @@
-#include <iostream>
-#include <unistd.h>     // fork, execvp, getpid
-#include <sys/wait.h>   // waitpid, WIFEXITED, WEXITSTATUS
+#include "minisched/runner.hpp"
 
-#include <unordered_map>
-#include <vector>
-#include "minisched/jobs.hpp"
+#include <cstdio>           // perror
+#include <iostream>         // std::cout
+#include <unordered_map>    // std::unordered_map
+#include <vector>           // std::vector
+
+#include <sys/wait.h>       // waitpid, WIFEXITED, WEXITSTATUS
+#include <unistd.h>         // fork, execvp, write, _exit, STDERR_FILENO
+
 #include "minisched/colors.hpp"
+#include "minisched/jobs.hpp"
 
 void c_process(Jobs& job){
     std::vector<char *> chars;
@@ -16,7 +20,7 @@ void c_process(Jobs& job){
     execvp(job.command[0].c_str(), chars.data());
 }
 
-int runner(Jobs& job, unordered_map<pid_t, Jobs>& jobMap){
+int runner(Jobs& job, std::unordered_map<pid_t, Jobs>& jobMap){
     
     pid_t pid = fork();
     if (pid < 0){
