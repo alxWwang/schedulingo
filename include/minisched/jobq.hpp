@@ -13,16 +13,34 @@ class JobQueue{
         bool pop(Jobs& out);
         void minirunner(int id);
         
-        private:
+    private:
         std::queue<Jobs> jobs_;
         std::mutex lock_;
         std::mutex write_lock;
-        std::counting_semaphore<2> gpu_sem{2};
 
-        int get_process_ct();
-        void run_with_print(Jobs& out, int id);
-        int decrement_process_ct();
+        std::condition_variable thread_wake;
+        std::queue<Jobs> cpu_jobs;
+        std::queue<Jobs> gpu_jobs;
+
         int active_process_ct = 0;
+        int gpu_resources_ct = 2;
+
+        void run_with_print(Jobs& out, int id);
+
+        bool gpuRunnable(){
+            // wake if gpu_jobs is not empty && there are resources available
+            return (!gpu_jobs.empty() && gpu_resources_ct > 0);
+        }
+
+        void gather_resources(Jobs& out){
+            if (out.gpu) gpu_resources_ct --;
+            active_process_ct++;
+        }
+        void relief_resources(Jobs& out){
+            if (out.gpu) gpu_resources_ct ++;
+            active_process_ct--;
+        }
+
 
 };
 void run_job_queue(vector<Jobs>& JobsList);

@@ -1,8 +1,10 @@
-# GPU jobs: matrix multiplies on the Apple GPU via MLX (~3s each when alone)
-gpu_a      60        [gpu] python3 testfiles/gpu_matmul.py gpu_a 60
-gpu_b      60        [gpu] python3 testfiles/gpu_matmul.py gpu_b 60
-gpu_c      60        [gpu] python3 testfiles/gpu_matmul.py gpu_c 60
-gpu_d      60        [gpu] python3 testfiles/gpu_matmul.py gpu_d 60
+
+# python tests
+py_test1    10      python3 testfiles/test1.py
+py_test2    7      python3 testfiles/test2.py
+py_test3    5      python3 testfiles/test3.py
+py_test4    2      python3 testfiles/test4.py
+py_test5    15      python3 testfiles/test5.py
 
 # name     max_secs  command
 build      5        echo hello build
@@ -13,10 +15,9 @@ greet      3         echo hello world
 gpu_train  60        [gpu] echo hello gpu
 bad_line    2
 
-# python tests
-py_test1    10      python3 testfiles/test1.py
-py_test2    7      python3 testfiles/test2.py
-py_test3    5      python3 testfiles/test3.py
-py_test4    2      python3 testfiles/test4.py
-py_test5    15      python3 testfiles/test5.py
+# GPU jobs: matrix multiplies on the Apple GPU via MLX (~3s each when alone)
+gpu_a      60        [gpu] python3 testfiles/gpu_matmul.py gpu_a 60
+gpu_b      60        [gpu] python3 testfiles/gpu_matmul.py gpu_b 60
+gpu_c      60        [gpu] python3 testfiles/gpu_matmul.py gpu_c 60
+gpu_d      60        [gpu] python3 testfiles/gpu_matmul.py gpu_d 60
 

@@ -1,6 +1,6 @@
 #include <minisched/jobq.hpp>
 #include <minisched/runner.hpp>
-#include "minisched/colors.hpp"
+#include <minisched/colors.hpp>
 #include <thread>
 #include <unistd.h> 
 #include <semaphore>
@@ -8,61 +8,55 @@
 
 void JobQueue::push(Jobs job){
     std::lock_guard<std::mutex> lock(lock_);
-    jobs_.push(job);
+    job.gpu ? gpu_jobs.push(job) : cpu_jobs.push(job);
+    thread_wake.notify_one();
 }
 
 bool JobQueue::pop(Jobs& out){
-    std::lock_guard<std::mutex> lock(lock_);
-    if(jobs_.size() > 0){
-        out = std::move(jobs_.front());
-        jobs_.pop();
-        active_process_ct++;
-        return true;
-    }
-    return false;
-}
-int JobQueue::get_process_ct(){
-    std::lock_guard<std::mutex> lock(lock_);
-    return active_process_ct + jobs_.size();
-}
+    std::unique_lock<std::mutex> lock(lock_);
+    // at this point, either jobs > 0 or active process == 0
+    thread_wake.wait(lock, [&]{return this->gpuRunnable() || (!cpu_jobs.empty()) || active_process_ct == 0; });
 
-int JobQueue::decrement_process_ct(){
-    std::lock_guard<std::mutex> lock(lock_);
-    active_process_ct --;
-    return active_process_ct;
+    // if both q's are empty and no process is running any more were done.
+    if (active_process_ct == 0 && (gpu_jobs.empty() && cpu_jobs.empty())){ 
+        thread_wake.notify_all();
+        return false;
+    }
+
+    // if jobs exist, and there is an active process or not -> we work
+    if (this->gpuRunnable()){
+        out = std::move(gpu_jobs.front());
+        gpu_jobs.pop();
+    }else{
+        out = std::move(cpu_jobs.front());
+        cpu_jobs.pop();
+    }
+    gather_resources(out);
+    return true;
 }
 
 void JobQueue::run_with_print(Jobs& out, int id){
     {
         std::lock_guard<std::mutex> lock(write_lock);
-        std::cout << color::YELLOW << id << "-> Started Job as parent with title: " << out.title << color::RESET << std::endl;
+        std::cout << color::YELLOW << id << " -> Started Job as parent with title: " << out.title << color::RESET << std::endl;
     }
     int runner_status = runner_no_map(out);
     {
         std::lock_guard<std::mutex> lock(write_lock);
-        std::cout << color::RED << id << "-> Finished Job: " << out.title << " status: " << runner_status << color::RESET << std::endl;
+        std::cout << color::RED << id << " -> Finished Job: " << out.title << " status: " << runner_status << color::RESET << std::endl;
     }
 }
 
 void JobQueue::minirunner(int id){
     Jobs out;
-    // when we have an active process and an empty pop, continue
-    // when we have no active process an an empty pop, end
-    // when we have an active process and there is a pop, work
-    // when we have no active process and there is a pop, work
-
-    do{
-        if (this->pop(out)){
-            if (!out.gpu) this->run_with_print(out, id);
-            else if (gpu_sem.try_acquire_for(50ms)){
-                this->run_with_print(out, id);
-                gpu_sem.release();
-            }else{
-                this->push(out);
-            }
-            this->decrement_process_ct();
-        }std::this_thread::sleep_for(50ms)
-    }while(get_process_ct() > 0);
+    while(this->pop(out)){ // while not line 26
+        this->run_with_print(out, id);
+        {
+            std::lock_guard<std::mutex> lock(lock_);
+            relief_resources(out);
+        }
+        thread_wake.notify_one();
+    }
 }
 
 void run_job_queue(vector<Jobs>& JobsList){
@@ -74,6 +68,7 @@ void run_job_queue(vector<Jobs>& JobsList){
     for (const auto& job: JobsList){
         jq.push(job);
     }
+    
     for (int i = 0; i< n_threads; i ++){
         threads_l.emplace_back(&JobQueue::minirunner, &jq, i);
     }
