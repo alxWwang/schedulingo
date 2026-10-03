@@ -14,6 +14,7 @@ greet      3         echo hello world
 # blank lines and comments should be skipped
 gpu_train  60        [gpu] echo hello gpu
 bad_line    2
+another_bad_process 10  this is a bad call that should fail
 
 # GPU jobs: matrix multiplies on the Apple GPU via MLX (~3s each when alone)
 gpu_a      60        [gpu] python3 testfiles/gpu_matmul.py gpu_a 60

@@ -35,7 +35,7 @@ bool JobQueue::pop(Jobs& out){
     return true;
 }
 
-void JobQueue::run_with_print(Jobs& out, int id){
+int JobQueue::run_with_print(Jobs& out, int id){
     {
         std::lock_guard<std::mutex> lock(write_lock);
         std::cout << color::YELLOW << id << " -> Started Job as parent with title: " << out.title << color::RESET << std::endl;
@@ -45,16 +45,21 @@ void JobQueue::run_with_print(Jobs& out, int id){
         std::lock_guard<std::mutex> lock(write_lock);
         std::cout << color::RED << id << " -> Finished Job: " << out.title << " status: " << runner_status << color::RESET << std::endl;
     }
+    return runner_status;
 }
 
 void JobQueue::minirunner(int id){
     Jobs out;
     while(this->pop(out)){ // while not line 26
-        this->run_with_print(out, id);
+        auto start_time = std::chrono::system_clock::now();
+        int runner_status = this->run_with_print(out, id);
+        auto end_time = std::chrono::system_clock::now();
+        std::chrono::duration<double> t_elapsed = (end_time-start_time);
         {
             std::lock_guard<std::mutex> lock(lock_);
             relief_resources(out);
         }
+        update_status(runner_status != 127, t_elapsed.count());
         thread_wake.notify_one();
     }
 }
@@ -65,6 +70,9 @@ void run_job_queue(vector<Jobs>& JobsList){
 
     std::vector<std::thread> threads_l;
     JobQueue jq;
+
+    auto start_time = std::chrono::system_clock::now();
+
     for (const auto& job: JobsList){
         jq.push(job);
     }
@@ -77,4 +85,10 @@ void run_job_queue(vector<Jobs>& JobsList){
             t.join();
         }
     }
-}
+    auto end_time = std::chrono::system_clock::now();
+    std::chrono::duration<double> t_elapsed = (end_time-start_time);
+
+
+    jq.print_status();
+    std::cout << "Real time: " << t_elapsed.count();
+} 
