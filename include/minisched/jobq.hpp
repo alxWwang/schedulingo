@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>               // std::atomic_flag (SpinLock)
 #include <condition_variable>   // std::condition_variable
 #include <iostream>             // std::cout (print_status)
 #include <mutex>                // std::mutex
@@ -8,39 +7,11 @@
 #include <thread>               // std::thread::hardware_concurrency
 #include <vector>               // std::vector
 
-#include "minisched/jobs.hpp"
+#include <minisched/jobs.hpp>
+#include <minisched/spinlock.hpp>
+#include <minisched/status.hpp>
 
 
-struct Stats {
-    int done = 0;
-    int failed = 0;
-    double time_elapsed = 0;
-};
-
-class SpinLock{
-
-    // THIS IS LITERALLY A MUTEX LOCK BUT IT DOES NOT SLEEP THE THREAD
-    // if we were to implement this as a mutex, we can add another line before the while loop to yield to the OS
-    public:
-        void lock(){
-            while(is_taken.test_and_set(std::memory_order_acquire)){}
-            // test and set returns old value and sets it to true
-            // if the original value was false (NOT is_taken) then it will break the loop
-            // if the original value was true (is_taken) then it will keep looping 
-        }
-        void unlock(){
-            is_taken.clear(std::memory_order_release);
-            // sets is_taken to false
-        }
-        bool try_lock(){
-            return !is_taken.test_and_set(std::memory_order_acquire);
-            // return true if the original value was false (NOT is_taken)
-            // locking was successful because it was free
-            // locking was unsiccessful because it was not free
-        }
-    private:
-        std::atomic_flag is_taken = ATOMIC_FLAG_INIT;
-};
 
 class JobQueue{
     public:
@@ -52,7 +23,7 @@ class JobQueue{
             std::cout << "Done: " << stats_.done << " Failed: " <<  stats_.failed << " Time elapsed: " << stats_.time_elapsed;
             spin_lock.unlock();
         }
-        void run_job_queue(std::vector<Jobs>& JobsList);
+        void run_job_queue(std::vector<Jobs>& JobsList, SchedulingStatus* ssq);
 
         JobQueue() = default;
         void set_gpu(int gpu_resources_ct){

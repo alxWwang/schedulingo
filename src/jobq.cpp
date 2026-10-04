@@ -68,13 +68,14 @@ void JobQueue::minirunner(int id){
     }
 }
 
-void JobQueue::run_job_queue(std::vector<Jobs>& JobsList){
+void JobQueue::run_job_queue(std::vector<Jobs>& JobsList, SchedulingStatus* ssq){
     std::cout << "hello world: starting " << this->worker_ct <<" workers" << std::endl;
 
     std::vector<std::thread> threads_l;
     auto start_time = std::chrono::system_clock::now();
 
     for (const auto& job: JobsList){
+        std::lock_guard<SpinLock> loc(ssq->lock);
         this->push(job);
     }
     
