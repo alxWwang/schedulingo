@@ -51,7 +51,7 @@ void n_max_runner(int max_n, vector<Jobs>& JobsList, unordered_map<pid_t, Jobs>&
 
 int run_monitor(){
     int fd = shm_open(SHM_NAME, O_RDWR, 0600);
-    if (fd < 0) {perror("File unavailable"); return 1;}
+    if (fd < 0) {cerr << "minisched is not running (no status table found)\n"; return 1;}
     void*p = mmap(nullptr, sizeof(SchedulingStatus), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (p == MAP_FAILED) {perror("mmap"); return 1;}
     close(fd);
@@ -61,10 +61,10 @@ int run_monitor(){
 
     while (true){
         pSsq->lock.lock();
-        std::cout << "\033[2J\033[H"; 
         SchedulingStatus ssq;
         memcpy(static_cast<void*>(&ssq), pSsq, sizeof(SchedulingStatus));
         pSsq->lock.unlock();
+        std::cout << "\033[2J\033[H";       // clear the screen (outside the lock: printing is slow)
         for (int i = 0; i < ssq.row_count; i++){
             Row &pRow = ssq.rows[i];
             print_ssq(pRow);
@@ -79,8 +79,13 @@ int run_monitor(){
 
 int main(int argc, char *argv[]){
     if (argc < 2) {
-        cout << "usage: " << argv[0] << "<file>";
+        cout << "usage: " << argv[0] << " <jobs file> [--gpu_ct N] [--worker_ct N]\n"
+             << "       " << argv[0] << " monitor\n";
         return 1;
+    }
+    // monitor mode doesn't need a jobs file, so check argv[1] before treating it as one
+    if (strcmp(argv[1], "monitor") == 0){
+        return run_monitor();
     }
 
     JobQueue jq;
@@ -89,9 +94,6 @@ int main(int argc, char *argv[]){
             jq.set_gpu(atoi(argv[i+1]));
         }if (strcmp(argv[i],"--worker_ct") == 0 && i+1 < argc){
             jq.set_worker(atoi(argv[i+1]));
-        }if (strcmp(argv[i], "monitor") == 0){
-            run_monitor();
-            return 0;
         }
     }
 
@@ -125,23 +127,8 @@ int main(int argc, char *argv[]){
     close(fd);
 
     SchedulingStatus* ssq = static_cast<SchedulingStatus*>(p);
-    
-    ssq->lock.lock();
-    ssq->running = true;
-    for (const Jobs& jobs: JobsList){
-        Row *pRow = &ssq->rows[ssq->row_count];
-        std::strncpy(pRow->title, jobs.title.data(), sizeof(pRow->title) -1);
-        pRow->title[jobs.title.size()] = '\0';
-        pRow->timelimit = jobs.timeLimit;
-        pRow->gpu = jobs.gpu;
-        pRow->status_ = JobStatus::WAITING;
-        ssq->row_count++;
-    }
-    for (int i = 0; i < ssq->row_count; i++){
-        Row &pRow = ssq->rows[i];
-        print_ssq(pRow);
-    }
-    ssq->lock.unlock();
+
+    // run_job_queue fills the table, sets running = true, and sets it false when done
     jq.run_job_queue(JobsList, ssq);
 
     munmap(p, sizeof(SchedulingStatus));

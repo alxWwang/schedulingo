@@ -7,9 +7,9 @@
 #include <thread>               // std::thread::hardware_concurrency
 #include <vector>               // std::vector
 
-#include <minisched/jobs.hpp>
-#include <minisched/spinlock.hpp>
-#include <minisched/status.hpp>
+#include "minisched/jobs.hpp"
+#include "minisched/spinlock.hpp"
+#include "minisched/status.hpp"
 
 
 
@@ -17,7 +17,7 @@ class JobQueue{
     public:
         void push(Jobs job);
         bool pop(Jobs& out);
-        void minirunner(int id);
+        void minirunner(int id, SchedulingStatus* ssq);
         void print_status(){
             spin_lock.lock();
             std::cout << "Done: " << stats_.done << " Failed: " <<  stats_.failed << " Time elapsed: " << stats_.time_elapsed;
@@ -34,11 +34,12 @@ class JobQueue{
         }
         
     private:
-        std::queue<Jobs> jobs_;
         std::mutex lock_;
         std::mutex write_lock;
 
         std::condition_variable thread_wake;
+
+        
         std::queue<Jobs> cpu_jobs;
         std::queue<Jobs> gpu_jobs;
 

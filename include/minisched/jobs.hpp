@@ -11,6 +11,7 @@ class Jobs {
         int timeLimit = 0;
         bool gpu = false;
         std::vector<std::string> command;
+        int row = -1;   // index of this job's row in the shared status table
 
         Jobs(std::istringstream& in){
             std::string timeLimit; std::string word;

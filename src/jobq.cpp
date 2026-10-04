@@ -1,6 +1,7 @@
 #include "minisched/jobq.hpp"
 
 #include <chrono>       // std::chrono (job and run timing)
+#include <cstring>      // std::strncpy
 #include <iostream>     // std::cout
 #include <mutex>        // std::lock_guard, std::unique_lock
 #include <thread>       // std::thread
@@ -9,6 +10,11 @@
 #include "minisched/colors.hpp"
 #include "minisched/runner.hpp"
 
+// Wall-clock seconds since the epoch: a plain double that minisched and the
+// monitor (a different process) interpret the same way.
+static double now_secs(){
+    return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
 void JobQueue::push(Jobs job){
     std::lock_guard<std::mutex> lock(lock_);
@@ -22,7 +28,7 @@ bool JobQueue::pop(Jobs& out){
     thread_wake.wait(lock, [&]{return this->gpuRunnable() || (!cpu_jobs.empty()) || active_process_ct == 0; });
 
     // if both q's are empty and no process is running any more were done.
-    if (active_process_ct == 0 && (gpu_jobs.empty() && cpu_jobs.empty())){ 
+    if (active_process_ct == 0 && (gpu_jobs.empty() && cpu_jobs.empty())){
         thread_wake.notify_all();
         return false;
     }
@@ -52,18 +58,30 @@ int JobQueue::run_with_print(Jobs& out, int id){
     return runner_status;
 }
 
-void JobQueue::minirunner(int id){
+void JobQueue::minirunner(int id, SchedulingStatus* ssq){
     Jobs out;
     while(this->pop(out)){ // while not line 26
-        auto start_time = std::chrono::system_clock::now();
+        Row* pRow = &ssq->rows[out.row];    // this job's row in shared memory
+
+        double start_time = now_secs();
+        {
+            std::lock_guard<SpinLock> loc(ssq->lock);
+            pRow->start_time = start_time;
+            pRow->status_ = JobStatus::RUNNING;
+        }
+
         int runner_status = this->run_with_print(out, id);
-        auto end_time = std::chrono::system_clock::now();
-        std::chrono::duration<double> t_elapsed = (end_time-start_time);
+        double t_elapsed = now_secs() - start_time;
+
         {
             std::lock_guard<std::mutex> lock(lock_);
             relief_resources(out);
         }
-        update_status(runner_status != 127, t_elapsed.count());
+        update_status(runner_status != 127, t_elapsed);
+        {
+            std::lock_guard<SpinLock> loc(ssq->lock);
+            pRow->status_ = (runner_status!=127 ? JobStatus::DONE : JobStatus::FAILED);
+        }
         thread_wake.notify_one();
     }
 }
@@ -72,25 +90,44 @@ void JobQueue::run_job_queue(std::vector<Jobs>& JobsList, SchedulingStatus* ssq)
     std::cout << "hello world: starting " << this->worker_ct <<" workers" << std::endl;
 
     std::vector<std::thread> threads_l;
-    auto start_time = std::chrono::system_clock::now();
+    double start_time = now_secs();
 
-    for (const auto& job: JobsList){
+    constexpr int max_rows = sizeof(ssq->rows) / sizeof(ssq->rows[0]);
+    {
         std::lock_guard<SpinLock> loc(ssq->lock);
-        this->push(job);
+        for (Jobs& job: JobsList){                      // not const: we record job.row
+            if (ssq->row_count >= max_rows){
+                std::cerr << "status table full, skipping " << job.title << std::endl;
+                continue;
+            }
+            job.row = ssq->row_count++;
+            Row* pRow = &ssq->rows[job.row];
+            std::strncpy(pRow->title, job.title.c_str(), sizeof(pRow->title) - 1);
+            pRow->title[sizeof(pRow->title) - 1] = '\0';   // always terminated, even if truncated
+            pRow->timelimit = job.timeLimit;
+            pRow->gpu = job.gpu;
+            pRow->status_ = JobStatus::WAITING;
+        }
+        ssq->running = true;
     }
-    
+    for (const Jobs& job: JobsList){
+        if (job.row >= 0) this->push(job);
+    }
+
     for (int i = 0; i< this->worker_ct; i ++){
-        threads_l.emplace_back(&JobQueue::minirunner, this, i);
+        threads_l.emplace_back(&JobQueue::minirunner, this, i, ssq);
     }
     for (std::thread& t: threads_l){
         if(t.joinable()){
             t.join();
         }
     }
-    auto end_time = std::chrono::system_clock::now();
-    std::chrono::duration<double> t_elapsed = (end_time-start_time);
-
+    {
+        std::lock_guard<SpinLock> loc(ssq->lock);
+        ssq->running = false;                         // tells the monitor to stop
+    }
+    double t_elapsed = now_secs() - start_time;
 
     this->print_status();
-    std::cout << "Real time: " << t_elapsed.count();
-} 
+    std::cout << "Real time: " << t_elapsed << std::endl;
+}
