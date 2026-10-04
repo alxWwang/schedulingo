@@ -8,6 +8,10 @@
 #include <sys/wait.h>       // waitpid, WIFEXITED, WEXITSTATUS
 #include <unistd.h>         // fork, execvp, write, _exit, STDERR_FILENO
 
+#include <thread>
+#include <chrono>
+#include <signal.h>
+
 #include "minisched/colors.hpp"
 #include "minisched/jobs.hpp"
 
@@ -46,7 +50,7 @@ int runner_no_map(Jobs& job){
     
     pid_t pid = fork();
     if (pid < 0){
-        return -1;
+        return RUN_ERROR;
     }
     if (pid == 0) { // Child process
         execvp(args[0], args.data());
@@ -55,10 +59,27 @@ int runner_no_map(Jobs& job){
         _exit(127);
     }
     // Parent Process
-    int status;
-    waitpid(pid, &status, 0);
-    if (WIFEXITED(status)){
-        return WEXITSTATUS(status);
+    int status = 0;
+    auto time_limit = std::chrono::steady_clock::now() + std::chrono::seconds(job.timeLimit);
+    auto grace_period_tl = time_limit + std::chrono::seconds(2);
+    bool timed_out = false;
+
+    pid_t ret_pid;
+    while ((ret_pid = waitpid(pid, &status, WNOHANG))== 0){
+        if (!timed_out && time_limit < std::chrono::steady_clock::now()){
+            kill(pid, SIGTERM);
+            timed_out = true;
+        }
+        if (timed_out && grace_period_tl < std::chrono::steady_clock::now()){
+            kill(pid, SIGKILL);
+            ret_pid = waitpid(pid, &status, 0);
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-    return -1;
+    if (ret_pid == -1) return RUN_ERROR;                     // -1
+    if (timed_out)     return EXIT_TIMEOUT;                  // -2
+    if (WIFEXITED(status))   return WEXITSTATUS(status);     // 0 success, rest failed
+    if (WIFSIGNALED(status)) return 128 + WTERMSIG(status);  // crashed / killed by someone else
+    return RUN_ERROR;
 };

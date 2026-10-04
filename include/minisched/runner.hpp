@@ -5,7 +5,16 @@
 
 #include "minisched/jobs.hpp"
 
-// Runs job.command as a child process (fork -> execvp -> waitpid).
-// Returns the child's exit code, or -1 if it could not be run or was killed.
+// Special results from runner_no_map (real exit codes are always 0..255).
+inline constexpr int RUN_ERROR    = -1;   // fork/waitpid failed: the job never ran properly
+inline constexpr int EXIT_TIMEOUT = -2;   // killed because it exceeded job.timeLimit
+
 int runner(Jobs& job, std::unordered_map<pid_t, Jobs>& jobMap);
+
+// Runs job.command as a child process and waits for it, enforcing job.timeLimit.
+// Returns:
+//   0          the job succeeded
+//   1..255     the job exited with that error code (127 = command not found)
+//   128 + N    the job was killed by signal N (crash, or killed by someone else)
+//   EXIT_TIMEOUT / RUN_ERROR  (see above)
 int runner_no_map(Jobs& job);

@@ -1,10 +1,10 @@
 
 # python tests
-py_test1    10      python3 testfiles/test1.py
-py_test2    7      python3 testfiles/test2.py
-py_test3    5      python3 testfiles/test3.py
-py_test4    2      python3 testfiles/test4.py
-py_test5    15      python3 testfiles/test5.py
+py_test1    11      python3 testfiles/test1.py
+py_test2    6      python3 testfiles/test2.py
+py_test3    8      python3 testfiles/test3.py
+py_test4    3      python3 testfiles/test4.py
+py_test5    16      python3 testfiles/test5.py
 
 # name     max_secs  command
 build      5        echo hello build

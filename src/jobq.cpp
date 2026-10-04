@@ -77,10 +77,15 @@ void JobQueue::minirunner(int id, SchedulingStatus* ssq){
             std::lock_guard<std::mutex> lock(lock_);
             relief_resources(out);
         }
-        update_status(runner_status != 127, t_elapsed);
+        // only exit code 0 is success; timeouts get their own state
+        JobStatus final_state = runner_status == 0            ? JobStatus::DONE
+                              : runner_status == EXIT_TIMEOUT ? JobStatus::TIMEOUT
+                                                              : JobStatus::FAILED;
+        update_status(final_state == JobStatus::DONE, t_elapsed);
         {
             std::lock_guard<SpinLock> loc(ssq->lock);
-            pRow->status_ = (runner_status!=127 ? JobStatus::DONE : JobStatus::FAILED);
+            pRow->status_ = final_state;
+            pRow->end_time = now_secs();
         }
         thread_wake.notify_one();
     }

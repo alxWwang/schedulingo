@@ -65,15 +65,19 @@ int run_monitor(){
         memcpy(static_cast<void*>(&ssq), pSsq, sizeof(SchedulingStatus));
         pSsq->lock.unlock();
         std::cout << "\033[2J\033[H";       // clear the screen (outside the lock: printing is slow)
+        double time_now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
         for (int i = 0; i < ssq.row_count; i++){
             Row &pRow = ssq.rows[i];
-            print_ssq(pRow);
+            print_ssq(pRow, time_now);
         }
         cout << "--" << i << endl;
         i++;
         if (!ssq.running) break;
         this_thread::sleep_for(std::chrono::seconds(1));
     }
+
+    munmap(p, sizeof(SchedulingStatus));
+    cout << "monitor stopped"<<endl;
     return 0;
 }
 
