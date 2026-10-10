@@ -56,10 +56,6 @@ inline void print_ssq(Row& r, double time_now){
         double seconds_total = (r.status_ == JobStatus::RUNNING ? time_now : r.end_time) - r.start_time;
         std::cout << std::left << std::setw(runtime_length) << seconds_total << '|'; 
     }
-
-    // if status is WAITING dont use at all
-    // if status is RUNNING use time now
-    // if status is done timeout or failed use end time
     std::cout << std::endl;
 }
 

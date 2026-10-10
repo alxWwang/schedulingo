@@ -60,12 +60,13 @@ int run_monitor(){
     int i = 0;
 
     while (true){
-        pSsq->lock.lock();
         SchedulingStatus ssq;
-        memcpy(static_cast<void*>(&ssq), pSsq, sizeof(SchedulingStatus));
-        pSsq->lock.unlock();
-        std::cout << "\033[2J\033[H";       // clear the screen (outside the lock: printing is slow)
+        std::cout << "\033[2J\033[H";
         double time_now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+        {
+            lock_guard<SpinLock> lock(pSsq->lock);
+            memcpy(static_cast<void*>(&ssq), pSsq, sizeof(SchedulingStatus));
+        }
         for (int i = 0; i < ssq.row_count; i++){
             Row &pRow = ssq.rows[i];
             print_ssq(pRow, time_now);
